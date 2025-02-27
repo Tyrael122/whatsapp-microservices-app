@@ -14,13 +14,12 @@ import org.contoso.whatsapp.data.models.ChatMessageOutgoing
 import org.contoso.whatsapp.data.models.ChatUser
 import org.contoso.whatsapp.data.repository.users.UserRepository
 
-class MessagingService(context: Context) {
+class MessagingService(
+    context: Context,
+    private val userService: UserService // Inject UserService
+) {
 
     private val userQueueService = UserQueueService(context)
-
-    private val userRepository = UserRepository()
-
-    private lateinit var userLoggedIn: ChatUser
 
     // Use a SnapshotStateMap for reactive updates
     private val chatMessagesMap: SnapshotStateMap<String, List<ChatMessageIncoming>> = mutableStateMapOf()
@@ -30,20 +29,23 @@ class MessagingService(context: Context) {
 
         withContext(Dispatchers.IO) {
             // Fetch the user from the repository
-            userLoggedIn = userRepository.getUsersByName(username).first()
+            val user = userService.getUsersByName(username).first()
 
             Log.i("MessagingService", "Finished fetching users")
-            Log.i("MessagingService", "Fetched user: $userLoggedIn")
+            Log.i("MessagingService", "Fetched user: $user")
+
+            // Set the logged-in user in UserService
+            userService.setLoggedInUser(user)
 
             // Create a queue for the user and wait for it to complete
-            userQueueService.createQueueToListenToMessagesToUser(userLoggedIn.id)
+            userQueueService.createQueueToListenToMessagesToUser(user.id)
 
-            // Now that the queue name is saved, start listening to messages
+            // Start listening to messages
             userQueueService.listenToMessages { message ->
                 Log.i("MessageService", "Received message: $message")
 
                 CoroutineScope(Dispatchers.IO).launch {
-                    val chatUser = userRepository.getUserById(message.sender)
+                    val chatUser = userService.getUserById(message.sender)
 
                     val parsedChatMessage = message.copy(sender = chatUser.name)
 
@@ -70,6 +72,13 @@ class MessagingService(context: Context) {
     }
 
     fun sendMessage(chatId: String, content: String) {
+        // Get the logged-in user from UserService
+        val userLoggedIn = userService.getLoggedInUser()
+        if (userLoggedIn == null) {
+            Log.e("MessagingService", "No user logged in")
+            return
+        }
+
         val sampleMessage = ChatMessageOutgoing(chatId, userLoggedIn.id, content)
         userQueueService.sendMessage(Gson().toJson(sampleMessage))
     }

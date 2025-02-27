@@ -2,6 +2,7 @@ package org.contoso.whatsapp.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,10 +10,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,9 +37,10 @@ import org.contoso.whatsapp.data.models.Chat
 import org.contoso.whatsapp.data.services.ChatService
 
 @Composable
-fun HomeScreen(chatService: ChatService = ChatService(), onChatClick: (Chat) -> Unit) {
+fun HomeScreen(chatService: ChatService, onChatClick: (Chat) -> Unit) {
     var chats by remember { mutableStateOf<List<Chat>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) } // Loading state
+    var showDialog by remember { mutableStateOf(false) } // Dialog visibility
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -43,15 +52,14 @@ fun HomeScreen(chatService: ChatService = ChatService(), onChatClick: (Chat) -> 
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxSize()
     ) {
         if (isLoading) {
             // Show a loading indicator
-            CircularProgressIndicator()
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (chats.isEmpty()) {
             // Show a message if no chats are available
-            Text("No chats available")
+            Text("No chats available", modifier = Modifier.align(Alignment.Center))
         } else {
             // Display the list of chats
             LazyColumn(
@@ -63,6 +71,29 @@ fun HomeScreen(chatService: ChatService = ChatService(), onChatClick: (Chat) -> 
                 }
             }
         }
+
+        // Floating Action Button (FAB)
+        FloatingActionButton(
+            onClick = { showDialog = true }, // Show the dialog when clicked
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add Chat")
+        }
+    }
+
+    // Dialog to create a new chat
+    if (showDialog) {
+        CreateChatDialog(
+            onDismiss = { showDialog = false },
+            onCreate = { chatName ->
+                coroutineScope.launch {
+                    val newChat = chatService.createChat(chatName)
+                    chats = chats + newChat // Update the chat list
+                }
+            }
+        )
     }
 }
 
@@ -89,4 +120,41 @@ fun ChatItem(chat: Chat, onClick: () -> Unit) {
             )
         }
     }
+}
+
+@Composable
+fun CreateChatDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {
+    var chatName by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Create New Chat") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = chatName,
+                    onValueChange = { chatName = it },
+                    label = { Text("Chat Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (chatName.isNotBlank()) {
+                        onCreate(chatName)
+                        onDismiss()
+                    }
+                }
+            ) {
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

@@ -1,6 +1,7 @@
 package org.contoso.whatsapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +32,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import org.contoso.whatsapp.data.services.ChatService
 import org.contoso.whatsapp.data.services.MessagingService
+import org.contoso.whatsapp.data.services.UserService
 import org.contoso.whatsapp.ui.screens.ChatScreen
 import org.contoso.whatsapp.ui.screens.HomeScreen
 import org.contoso.whatsapp.ui.theme.WhatsAppTheme
@@ -56,7 +59,10 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val messagingService = remember { MessagingService(context) }
+
+    val userService = remember { UserService() }
+    val messagingService = remember { MessagingService(context, userService) }
+    val chatService = remember { ChatService(userService) }
 
     NavHost(
         navController = navController,
@@ -66,7 +72,7 @@ fun AppNavigation() {
             LoginScreen(navController, messagingService)
         }
         composable("home") {
-            HomeScreen { chat ->
+            HomeScreen(chatService) { chat ->
                 // Navigate to the chat screen with the chatId
                 navController.navigate("chat/${chat.id}")
             }
@@ -132,6 +138,7 @@ fun LoginScreen(
                         } catch (e: Exception) {
                             // Handle any errors that occur during login
                             // For example, show a snackbar or error message
+                            Log.e("LoginScreen", "Error logging in", e)
                             isError = true
                         }
                     }
@@ -141,16 +148,5 @@ fun LoginScreen(
         ) {
             Text("Login")
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    WhatsAppTheme {
-        val navController = rememberNavController()
-        val context = LocalContext.current
-        val messagingService = remember { MessagingService(context) }
-        LoginScreen(navController, messagingService)
     }
 }
