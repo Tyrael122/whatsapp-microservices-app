@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.contoso.whatsapp.data.DataStoreHelper
 import org.contoso.whatsapp.data.models.ChatMessageIncoming
@@ -19,22 +18,21 @@ class UserQueueService(context: Context) {
     }
 
     suspend fun createQueueToListenToMessagesToUser(userId: String) {
-        val queueName = "queue-" + UUID.randomUUID().toString()
+        val existingQueueName = dataStoreHelper.getQueueNameForUser(userId)
+        val queueName = existingQueueName ?: ("queue-" + UUID.randomUUID().toString())
 
         rabbitMQManager.bindQueue(queueName)
         rabbitMQManager.bindQueueToExchange(queueName, "chat-messages-exchange", userId)
 
-        // Save the queue name to DataStore
-        withContext(Dispatchers.IO) {
-            dataStoreHelper.saveQueueName(queueName)
-        }
+        Log.i("UserQueueService", "Created queue: $queueName")
+        dataStoreHelper.saveUserQueueMapping(userId, queueName)
     }
 
-    suspend fun listenToMessages(messageHandler: (ChatMessageIncoming) -> Unit) {
+    suspend fun listenToMessages(userId: String, messageHandler: (ChatMessageIncoming) -> Unit) {
         withContext(Dispatchers.IO) {
-            Log.i("UserQueueService", "Retrieving queue name.")
+            Log.i("UserQueueService", "Retrieving queue name for user: $userId")
 
-            val queueName = dataStoreHelper.getQueueName().first()
+            val queueName = dataStoreHelper.getQueueNameForUser(userId)
 
             Log.i("UserQueueService", "Listening to queue: $queueName")
 
@@ -46,7 +44,7 @@ class UserQueueService(context: Context) {
                     messageHandler.invoke(chatMessageIncoming)
                 }
             } else {
-                Log.e("UserQueueService", "Queue name is null.")
+                Log.e("UserQueueService", "Queue name is null for user: $userId")
             }
         }
     }

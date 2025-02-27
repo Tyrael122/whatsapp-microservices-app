@@ -46,7 +46,7 @@ class MessagingService(
             userQueueService.createQueueToListenToMessagesToUser(user.id)
 
             // Start listening to messages
-            userQueueService.listenToMessages { message ->
+            userQueueService.listenToMessages(user.id) { message ->
                 Log.i("MessageService", "Received message: $message")
 
                 CoroutineScope(Dispatchers.IO).launch {
