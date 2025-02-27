@@ -35,12 +35,16 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.contoso.whatsapp.data.models.Chat
 import org.contoso.whatsapp.data.services.ChatService
+import org.contoso.whatsapp.data.services.UserService
 
 @Composable
-fun HomeScreen(chatService: ChatService, onChatClick: (Chat) -> Unit) {
+fun HomeScreen(
+    chatService: ChatService,
+    onChatClick: (Chat) -> Unit,
+    onCreateChat: () -> Unit // Callback to navigate to the create chat screen
+) {
     var chats by remember { mutableStateOf<List<Chat>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) } // Loading state
-    var showDialog by remember { mutableStateOf(false) } // Dialog visibility
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -74,26 +78,13 @@ fun HomeScreen(chatService: ChatService, onChatClick: (Chat) -> Unit) {
 
         // Floating Action Button (FAB)
         FloatingActionButton(
-            onClick = { showDialog = true }, // Show the dialog when clicked
+            onClick = onCreateChat, // Navigate to the create chat screen
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add Chat")
         }
-    }
-
-    // Dialog to create a new chat
-    if (showDialog) {
-        CreateChatDialog(
-            onDismiss = { showDialog = false },
-            onCreate = { chatName ->
-                coroutineScope.launch {
-                    val newChat = chatService.createChat(chatName)
-                    chats = chats + newChat // Update the chat list
-                }
-            }
-        )
     }
 }
 

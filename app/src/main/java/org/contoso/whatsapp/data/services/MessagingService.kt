@@ -11,8 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.contoso.whatsapp.data.models.ChatMessageIncoming
 import org.contoso.whatsapp.data.models.ChatMessageOutgoing
-import org.contoso.whatsapp.data.models.ChatUser
-import org.contoso.whatsapp.data.repository.users.UserRepository
 
 class MessagingService(
     context: Context,
@@ -22,14 +20,21 @@ class MessagingService(
     private val userQueueService = UserQueueService(context)
 
     // Use a SnapshotStateMap for reactive updates
-    private val chatMessagesMap: SnapshotStateMap<String, List<ChatMessageIncoming>> = mutableStateMapOf()
+    private val chatMessagesMap: SnapshotStateMap<String, List<ChatMessageIncoming>> =
+        mutableStateMapOf()
 
     suspend fun login(username: String) {
         Log.i("MessagingService", "Fetching users")
 
         withContext(Dispatchers.IO) {
             // Fetch the user from the repository
-            val user = userService.getUsersByName(username).first()
+            val users = userService.getUsersByName(username)
+            val user = if (users.isEmpty()) {
+                Log.e("MessagingService", "No user found with username $username")
+                userService.createUser(username)
+            } else {
+                users.first()
+            }
 
             Log.i("MessagingService", "Finished fetching users")
             Log.i("MessagingService", "Fetched user: $user")

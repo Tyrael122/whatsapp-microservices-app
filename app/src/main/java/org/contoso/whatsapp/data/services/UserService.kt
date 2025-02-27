@@ -1,6 +1,7 @@
 package org.contoso.whatsapp.data.services
 
 import org.contoso.whatsapp.data.models.ChatUser
+import org.contoso.whatsapp.data.models.ChatUserCreationRequest
 import org.contoso.whatsapp.data.repository.users.UserRepository
 
 class UserService {
@@ -20,9 +21,8 @@ class UserService {
         return userLoggedIn
     }
 
-    // Clear the logged-in user (for logout)
-    fun clearLoggedInUser() {
-        userLoggedIn = null
+    suspend fun createUser(username: String): ChatUser {
+        return userRepository.createUser(ChatUserCreationRequest(username))
     }
 
     suspend fun getUsersByName(username: String): List<ChatUser> {
@@ -31,5 +31,15 @@ class UserService {
 
     suspend fun getUserById(sender: String): ChatUser {
         return userRepository.getUserById(sender)
+    }
+
+    suspend fun getAllUsersExceptLoggedIn(): List<ChatUser> {
+        val users = getAllUsers()
+
+        return users.filter { it.id != userLoggedIn?.id }
+    }
+
+    suspend fun getAllUsers(): List<ChatUser> {
+        return userRepository.getAllUsers()
     }
 }

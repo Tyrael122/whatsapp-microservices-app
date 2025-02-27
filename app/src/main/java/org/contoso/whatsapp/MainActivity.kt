@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,6 +35,8 @@ import org.contoso.whatsapp.data.services.ChatService
 import org.contoso.whatsapp.data.services.MessagingService
 import org.contoso.whatsapp.data.services.UserService
 import org.contoso.whatsapp.ui.screens.ChatScreen
+import org.contoso.whatsapp.ui.screens.CreateChatScreen
+import org.contoso.whatsapp.ui.screens.EditParticipantsScreen
 import org.contoso.whatsapp.ui.screens.HomeScreen
 import org.contoso.whatsapp.ui.theme.WhatsAppTheme
 
@@ -61,8 +62,8 @@ fun AppNavigation() {
     val context = LocalContext.current
 
     val userService = remember { UserService() }
-    val messagingService = remember { MessagingService(context, userService) }
     val chatService = remember { ChatService(userService) }
+    val messagingService = remember { MessagingService(context, userService) }
 
     NavHost(
         navController = navController,
@@ -72,14 +73,41 @@ fun AppNavigation() {
             LoginScreen(navController, messagingService)
         }
         composable("home") {
-            HomeScreen(chatService) { chat ->
-                // Navigate to the chat screen with the chatId
-                navController.navigate("chat/${chat.id}")
-            }
+            HomeScreen(
+                chatService = chatService,
+                onChatClick = { chat ->
+                    navController.navigate("chat/${chat.id}")
+                },
+                onCreateChat = {
+                    navController.navigate("createChat")
+                }
+            )
         }
         composable("chat/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
-            ChatScreen(messagingService, chatId)
+            ChatScreen(
+                messagingService = messagingService,
+                chatId = chatId,
+                onEditParticipants = {
+                    navController.navigate("editParticipants/${chatId}")
+                }
+            )
+        }
+        composable("editParticipants/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            EditParticipantsScreen(
+                chatService = chatService,
+                userService = userService,
+                chatId = chatId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable("createChat") {
+            CreateChatScreen(
+                chatService = chatService,
+                userService = userService,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -1,6 +1,5 @@
 package org.contoso.whatsapp.data.models
 
-data class ChatRequest(
-    val name: String,
+data class ChatUpdateRequest(
     val users: List<String>
 )
