@@ -1,7 +1,7 @@
 # WhatsApp Microservices - Android App
 
 ## Overview
-This is a Kotlin-based Android application that connects to a RabbitMQ-backed microservices architecture to enable real-time messaging. The app allows users to log in, select chat participants, join chats, and exchange messages instantly.
+This is a Kotlin-based Android application that connects to a [RabbitMQ-backed microservices](https://github.com/Tyrael122/whatsapp-microservices) architecture to enable real-time messaging. The app allows users to log in, select chat participants, join chats, and exchange messages instantly.
 
 ## Features
 - **Simple Login System**: Users enter a username (no password required). If the user doesn’t exist, they are automatically created.
